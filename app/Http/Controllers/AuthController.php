@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
@@ -26,30 +27,26 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
-        $request->validate([
+        $validator = Validator::make($request->all(),[
             'email' => 'required|string|email',
             'password' => 'required|string',
         ]);
+        if ($validator->fails()) {
+            return $this->responseWithError($validator->errors(), 'The given data was invalid.', 422);
+        }
         $credentials = $request->only('email', 'password');
 
         $token = Auth::attempt($credentials);
         if (!$token) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Unauthorized',
-            ], 401);
+            return $this->responseWithError([], 'Unauthorized', 401);
         }
 
         $user = Auth::user();
-        return response()->json([
-            'status' => 'success',
-            'user' => $user,
-            'token' => $token,
-            'type' => 'bearer',
-        ]);
+        return $this->responseWithSuccess(['user' => $user, 'token' => $token, 'token_type' => 'bearer'], 'Login Successfully');
     }
 
-    public function register(Request $request){
+    public function register(Request $request)
+    {
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
@@ -63,13 +60,7 @@ class AuthController extends Controller
         ]);
 
         $token = Auth::login($user);
-        return response()->json([
-            'status' => 'success',
-            'message' => 'User created successfully',
-            'user' => $user,
-            'token' => $token,
-            'type' => 'bearer',
-        ]);
+        return $this->responseWithSuccess(['user' => $user, 'token' => $token, 'token_type' => 'bearer'], 'User created successfully');
     }
 
     /**
@@ -79,7 +70,7 @@ class AuthController extends Controller
      */
     public function me()
     {
-        return response()->json(auth()->user());
+        return $this->responseWithSuccess(['user' => auth()->user()], 'User info!');
     }
 
     /**
@@ -89,11 +80,8 @@ class AuthController extends Controller
      */
     public function logout()
     {
-        Auth::logout();
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Successfully logged out',
-        ]);
+        auth()->logout();
+        return $this->responseWithSuccess([], 'Successfully logged out');
     }
 
     /**
@@ -103,12 +91,25 @@ class AuthController extends Controller
      */
     public function refresh()
     {
-        return response()->json([
+        /*return response()->json([
             'status' => 'success',
             'user' => Auth::user(),
             'token' => Auth::refresh(),
             'type' => 'bearer',
-        ]);
-        return $this->respondWithToken(auth()->refresh());
+        ]);*/
+        return $this->createNewToken(auth()->refresh());
+    }
+
+    /**
+     * Get the token array structure.
+     *
+     * @param string $token
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    protected function createNewToken($token)
+    {
+        return $this->responseWithSuccess(['user' => auth()->user(), 'token' => $token, 'token_type' => 'bearer'], 'Token generated');
+        // 'expires_in' => auth()->factory()->getTTL() * 60,
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Traits\ApiReturnFormatTrait;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -10,6 +11,7 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 
 class JWTMiddleware
 {
+    use ApiReturnFormatTrait;
     /**
      * Handle an incoming request.
      *
@@ -20,10 +22,10 @@ class JWTMiddleware
         try {
             $user = JWTAuth::parseToken()->authenticate();
             if (!$user) {
-                return response()->json(['message' => 'user not found'], 200);
+                return $this->responseWithNotFound('user not found', 404);
             }
         } catch (JWTException $e) {
-            return response()->json(['message' => 'Unauthorized action detected'], 403);
+            return $this->responseWithError('Unauthorized action detected', '', 403);
         }
         return $next($request);
     }
