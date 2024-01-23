@@ -18,7 +18,7 @@ class ProductResource extends JsonResource
         return [
             'name' => $this->name,
             'description' => $this->detail,
-            'image' => ($this->image && Storage::exists($this->image)) ? Storage::url('products/'.$this->image) : asset('img/no-image.png'),
+            'image' => ($this->image && Storage::exists($this->image)) ? Storage::url($this->image) : asset('img/no-image.png'),
             'price' => $this->price,
             'stock' => $this->stock > 0 ? ($this->stock) : "Out of stock",
             'discount' => $this->discount,
